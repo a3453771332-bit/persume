@@ -1,0 +1,5 @@
+# Local-only dependencies for the frozen research-connected application.
+# Streamlit Cloud public deployment uses requirements.txt instead.
+-r requirements.txt
+numpy>=1.26
+scikit-learn>=1.4

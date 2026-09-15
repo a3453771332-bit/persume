@@ -1,4 +1,4 @@
 """Canonical Streamlit Cloud entry point."""
-from public_app import run
+from webapp.public_app import run
 
 run()

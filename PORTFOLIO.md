@@ -14,7 +14,7 @@ Across frozen experiments, evidence reduction spans **22%–61%**. The result is
 - Validation covers IID, out-of-time, and structural stress settings. Bootstrap confidence intervals quantify uncertainty, while the Oracle policy is presented only as a diagnostic upper bound because it uses Full-Evidence look-ahead.
 - The public deployment replays 1,000 frozen Home Credit test cases. It does not retrain a model, tune a policy, or accept a new applicant for scoring.
 
-## What a recruiter can inspect
+## What can be inspected
 
 - **[Public demo](https://appapppy-zyezgezu6jgimid7p8wks6.streamlit.app/):** inspect a frozen case, sweep precomputed stopping margins, see the evidence-versus-agreement trade-off, and review disagreement cases.
 - **[Local research application](webapp/app.py):** inspect the full research-connected workflow, including historical counterfactual replay, operational simulation, audit trail, and offline evaluation.

@@ -1,0 +1,15 @@
+{
+  "source": "Frozen Home Credit Logistic Regression prefix-prediction audit",
+  "sample_size": 24,
+  "decision_threshold": 0.0871480217629166,
+  "default_margin": 0.05,
+  "ranking": [
+    "APPLICATION_EXTERNAL_CREDIT_QUALITY_EVIDENCE",
+    "REPAYMENT_PERFORMANCE_QUALITY_EVIDENCE",
+    "BUREAU_ACTIVE_CREDIT_CAPACITY_EVIDENCE",
+    "BUREAU_CREDIT_HISTORY_QUALITY_EVIDENCE",
+    "BUREAU_RECENT_CREDIT_ACTIVITY_EVIDENCE",
+    "REPAYMENT_PRIOR_CREDIT_EXPERIENCE_EVIDENCE"
+  ],
+  "note": "Public artifact for historical replay only; no online inference or TARGET access."
+}

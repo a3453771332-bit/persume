@@ -24,6 +24,14 @@ def run() -> None:
     st.info("Experimental historical replay — not a live underwriting system.")
     st.caption("Across frozen experiments, information reduction ranged from 22% to 61%, depending on the dataset and model. Start by choosing a replay case below.")
 
+    st.subheader("How it works")
+    start, check, request, stop = st.columns(4)
+    start.markdown("**1. Start**  \nReview the information already available.")
+    check.markdown("**2. Check**  \nAsk whether it supports a stable recommendation.")
+    request.markdown("**3. Request only if needed**  \nUse another information group only when the decision is not yet stable.")
+    stop.markdown("**4. Stop and compare**  \nShow the recommendation and compare it with the full-information reference.")
+    st.caption("The public demo replays the final state of this workflow for frozen historical cases.")
+
     explore, compare, failures, assumptions = st.tabs(["Try the replay", "See the trade-offs", "Review impact scenarios", "Technical details"])
     with explore:
         st.subheader("1. Choose a historical case")
@@ -43,6 +51,7 @@ def run() -> None:
         st.write(f"**Information acquired:** {row.fixed_path or 'The initial application information was sufficient.'}")
         st.write(f"**Why the system stopped:** {stop_reason}")
         st.write(f"**Full-information reference:** estimated default risk {row.full_probability:.1%}. This is a model reference for comparison, not ground truth.")
+        st.success("Next step: use the other tabs to see the broader trade-off and the business impact of the disagreement cases.")
         st.caption("In the original workflow, another information group is requested only when the current evidence is not sufficient for a stable decision. This public demo replays the final frozen path rather than scoring a new applicant or recomputing intermediate steps.")
     with compare:
         st.subheader("What changes when we ask for less information?")

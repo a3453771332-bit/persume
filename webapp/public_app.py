@@ -43,7 +43,7 @@ def reset_simulation(case_id: str, note: str = "") -> None:
 
 def profile_text(profile: pd.Series) -> str:
     return (f"Age {int(profile.age)} · {float(profile.employment_years):.1f} years employed · "
-            f"monthly income ${float(profile.monthly_income):,.0f} · requested credit ${float(profile.requested_credit):,.0f} · {profile.housing}")
+            f"monthly income {float(profile.monthly_income):,.0f} scaled units · requested credit {float(profile.requested_credit):,.0f} scaled units · {profile.housing}")
 
 
 def confidence_label(distance: float, margin: float) -> str:
@@ -80,8 +80,8 @@ def render_simulator(sim: ProgressiveReplay) -> None:
         st.caption(str(profile.case_label))
         st.write(f"**Age**  \n{int(profile.age)}")
         st.write(f"**Employment years**  \n{float(profile.employment_years):.1f}")
-        st.write(f"**Monthly income**  \n${float(profile.monthly_income):,.0f}")
-        st.write(f"**Requested credit**  \n${float(profile.requested_credit):,.0f}")
+        st.write(f"**Monthly income**  \n{float(profile.monthly_income):,.0f} scaled units")
+        st.write(f"**Requested credit**  \n{float(profile.requested_credit):,.0f} scaled units")
         st.write(f"**Housing**  \n{profile.housing}")
     with journey:
         st.markdown("#### Evidence journey")
@@ -97,10 +97,12 @@ def render_simulator(sim: ProgressiveReplay) -> None:
     with status:
         st.markdown("#### Decision status")
         st.metric("Risk probability", f"{float(current_state.probability):.1%}")
-        st.metric("Current recommendation", str(current_state.decision))
+        st.metric("Current direction", f"{current_state.decision} (provisional)" if not bool(current_state.sufficient) else str(current_state.decision))
         st.metric("Evidence used", f"{int(current_state.step)} / {len(sim.ranking)}")
         st.metric("Decision confidence", confidence_label(float(current_state.boundary_distance), sim.margin))
+        st.metric("Distance from decision boundary", f"{float(current_state.boundary_distance):.1%}")
         st.metric("Status", "Stop" if bool(current_state.sufficient) else "More evidence needed")
+        st.caption(f"Decision boundary: {sim.threshold:.1%}. Current direction becomes final only when the status is Stop.")
     acquired = [evidence_name(unit) for unit in str(current_state.evidence_acquired).split(";") if unit]
     remaining = [evidence_name(unit) for unit in sim.ranking[int(current_state.step):]]
     st.write(f"**Already used:** {', '.join(acquired) if acquired else 'Basic application information only.'}")
@@ -146,7 +148,7 @@ def render_simulator(sim: ProgressiveReplay) -> None:
     chart = px.line(timeline, x="step", y="probability", markers=True, labels={"step": "Information groups acquired", "probability": "Risk probability"}, template="plotly_white")
     chart.add_hline(y=sim.threshold, line_dash="dash", annotation_text="Decision boundary")
     chart.update_yaxes(tickformat=".1%")
-    with st.expander("Risk trajectory"):
+    with st.expander("Risk trajectory", expanded=True):
         st.plotly_chart(chart, width="stretch")
 
 
@@ -162,7 +164,7 @@ def render_comparison(rt) -> None:
     for name, value in presets.items():
         row = sweep.loc[sweep.margin.eq(value)].iloc[0]
         preset_rows.append({"Policy": name, "Agreement": row.agreement, "Extra evidence": row.evidence, "Information saved": 1 - row.evidence / 5})
-    st.dataframe(pd.DataFrame(preset_rows), hide_index=True, width="stretch", column_config={"Agreement": st.column_config.NumberColumn(format="%.2%%"), "Extra evidence": st.column_config.NumberColumn(format="%.1f"), "Information saved": st.column_config.NumberColumn(format="%.0%%")})
+    st.dataframe(pd.DataFrame(preset_rows), hide_index=True, width="stretch", column_config={"Agreement": st.column_config.NumberColumn(format="%.2f%%"), "Extra evidence": st.column_config.NumberColumn(format="%.1f"), "Information saved": st.column_config.NumberColumn(format="%.0f%%")})
     a, b, c = st.columns(3)
     a.metric("Selected policy", selected_name.split(" · ")[0])
     b.metric("Agreement with full information", f"{point.agreement:.2%}")
@@ -195,13 +197,14 @@ def render_failures(rt) -> None:
     false_approve = failed.loc[failed.fixed_decision.eq("Approve")]
     false_reject = failed.loc[failed.fixed_decision.eq("Reject")]
     a, b = st.columns(2)
-    a.metric("False approve · credit-loss exposure", f"${false_approve['Expected Loss Impact Magnitude ($)'].sum():,.0f}")
-    a.caption("A risky applicant was approved too early.")
-    b.metric("False reject · foregone opportunity", f"${false_reject['Expected Loss Impact Magnitude ($)'].sum():,.0f}")
-    b.caption("A potentially good applicant was rejected too early.")
+    a.metric("False approve · expected loss difference", f"${false_approve['Expected Loss Impact Magnitude ($)'].sum():,.0f}")
+    a.caption(f"{len(false_approve)} cases. A $0 value means no false-approve case occurred in this frozen replay sample.")
+    b.metric("False reject · expected loss difference", f"${false_reject['Expected Loss Impact Magnitude ($)'].sum():,.0f}")
+    b.caption(f"{len(false_reject)} cases. This is a simplified PD-and-LGD difference, not foregone interest income.")
     failed = failed.sort_values("Expected Loss Impact Magnitude ($)", ascending=False)
-    columns = ["anonymous_applicant_id", "Failure type", "fixed_probability", "full_probability", "Estimated Expected Loss Impact ($)", "Expected Loss Impact Magnitude ($)", "fixed_path"]
-    st.dataframe(failed[columns], width="stretch", hide_index=True, column_config={"fixed_probability": st.column_config.NumberColumn(format="%.1%%"), "full_probability": st.column_config.NumberColumn(format="%.1%%")})
+    columns = ["Failure type", "fixed_probability", "full_probability", "Estimated Expected Loss Impact ($)"]
+    display = failed[columns].rename(columns={"fixed_probability": "Early-stop risk probability", "full_probability": "Full-information risk probability", "Estimated Expected Loss Impact ($)": "Illustrative expected-loss difference (USD)"})
+    st.dataframe(display, width="stretch", hide_index=True, column_config={"Early-stop risk probability": st.column_config.NumberColumn(format="%.1f%%"), "Full-information risk probability": st.column_config.NumberColumn(format="%.1f%%"), "Illustrative expected-loss difference (USD)": st.column_config.NumberColumn(format="$%,.0f")})
     st.caption("Estimated impact = (early-stop probability − full-information probability) × typical exposure × loss given default. Values are simplified scenario arithmetic, not realised losses.")
 
 
@@ -215,7 +218,7 @@ def run() -> None:
     st.markdown("`AI-assisted build` &nbsp; `Experiment-led iteration` &nbsp; `Interactive historical replay`")
     st.write("Collecting every document upfront creates delay, applicant friction, privacy exposure, and operational cost. This prototype explores when the system can stop early—and when it should ask for more information.")
     st.info("This prototype replays frozen out-of-sample decision trajectories and does not perform live credit scoring.")
-    st.caption("Across frozen experiments, information reduction ranged from 22% to 61%, depending on the dataset and model.")
+    st.caption("Home Credit demo: the Balanced frozen setting matches the full-information recommendation 99.7% of the time while saving about 43% of optional information groups. The 22%–61% range is the broader cross-dataset/model research result.")
     simulator, compare, failures = st.tabs(["Explore a decision", "Compare policies", "Understand risk"])
     with simulator:
         render_simulator(sim)

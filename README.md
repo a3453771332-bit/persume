@@ -1,21 +1,60 @@
-# Credit Evidence Policy Lab
+# Progressive Decision Explorer
 
-**Problem:** Can a credit decision request less optional evidence without changing the decision that would have been made after reviewing everything?
+**Explore how decisions evolve as additional evidence becomes available.**
 
-**Core finding:** Evidence reduction ranges from **22% to 61%** across the studied settings, and the attainable reduction is **highly dependent on the dataset and model** rather than being a universal property of an evidence-acquisition policy.
+A public, interactive prototype for examining whether a decision workflow can request less optional information while preserving the recommendation reached with full information.
 
-![Existing evidence-fidelity frontier from the frozen research results](成果展示_F2/evidence_fidelity_frontier.png)
+> **This prototype replays frozen out-of-sample decision trajectories and does not perform live credit scoring.**
 
-- **Methodological rigour.** The study evaluates IID, out-of-time, and structural stress settings; reports bootstrap confidence intervals; and uses an Oracle upper bound only as a diagnostic reference.
-- **An honest mixed result.** More complex adaptive ordering did not consistently outperform a simple frozen fixed-order policy, so the project reports the negative result rather than treating adaptivity as an assumption.
-- **Product judgement.** This is a research validation tool, not an underwriting product: it replays historical evidence paths to examine decision stability and does not make live credit decisions.
+[Open the public demo](https://appapppy-zyezgezu6jgimid7p8wks6.streamlit.app/) · [Methodology](#method-and-boundaries)
 
-## Two ways to inspect the project
+## What you can explore
 
-- **[Public demo](https://appapppy-zyezgezu6jgimid7p8wks6.streamlit.app/)** — a cloud-safe, read-only replay of 1,000 frozen Home Credit test cases. It shows policy trade-offs, disagreement cases, and illustrative economic scenarios. It does not accept new applicants, expose raw data, train models, tune thresholds, or use `TARGET` in a decision.
-- **[Local research application](webapp/app.py)** — the research-connected Streamlit interface for the original local environment. It includes applicant exploration, historical counterfactual replay, operational simulation, audit trails, and offline evaluation. It requires the private raw datasets and frozen research artifacts, so it is intentionally not part of the public deployment.
+The public demo is organised around three questions:
 
-For a three-minute portfolio summary, see [PORTFOLIO.md](PORTFOLIO.md). The frozen-artifact boundary is defined in [RESEARCH_CODE_FREEZE.md](RESEARCH_CODE_FREEZE.md).
+1. **Explore a decision** — choose one of 24 curated, anonymous held-out cases and request the next predefined evidence group step by step. See the current risk probability, provisional direction, information status, decision confidence, and final comparison with the full-information reference.
+2. **Compare policies** — inspect the frozen trade-off between collecting less optional information and matching the full-information recommendation. The public interface translates technical settings into Lean, Balanced, and Conservative policy choices.
+3. **Understand risk** — inspect where an early stop changed the full-information reference and translate PD differences into an illustrative expected-loss scenario.
+
+The interactive sample includes early-stop, borderline, reject, decision-changed, agreement, and disagreement cases so that the workflow is visible rather than presented only as an aggregate result.
+
+## Key result
+
+In the Home Credit public demo, the **Balanced** frozen setting matches the full-information recommendation in approximately **99.7%** of the development replay while using about **2.9 of 5** optional evidence groups on average — roughly **43% fewer optional groups**.
+
+Across the broader frozen experiments, evidence reduction ranged from **22% to 61%**. The attainable reduction depends materially on the dataset and model; it is not a universal property of the policy.
+
+## What the project found
+
+The project tested more complex adaptive ordering against a simpler frozen fixed-order policy. The complex approach did **not** deliver a stable advantage across the evaluated settings.
+
+That negative/mixed result is retained deliberately:
+
+```
+Complex approaches
+        ↓
+Experimental comparison
+        ↓
+No stable advantage
+        ↓
+Simplified stopping rule
+        ↓
+Interactive prototype
+```
+
+The public prototype therefore demonstrates an explainable sequential evidence workflow rather than claiming a superior underwriting algorithm.
+
+## Method and boundaries
+
+- The public app reads only versioned, frozen deployment artifacts in `demo_data/`.
+- The interactive Explorer uses **24 curated anonymous trajectories** from a frozen held-out Home Credit test split.
+- Policy and impact views use the existing **1,000-case frozen replay** artifacts.
+- The runtime does **not** import research scripts, train a model, tune a threshold, regenerate a split, call an evidence provider, or use `TARGET` in a decision workflow.
+- Full information is a **model reference**, not ground truth.
+- “Risk probability” and the illustrative impact view are experimental outputs, not a real credit decision or lending-loss estimate.
+- The public app exposes scaled, anonymised display values rather than raw application records.
+
+For research detail such as threshold selection, bootstrap analysis, cross-fitting, fidelity definitions, and the Oracle diagnostic, use the frozen research materials rather than inferring these details from the public UI.
 
 ## Run the public demo locally
 
@@ -24,11 +63,29 @@ pip install -r requirements.txt
 python -m streamlit run streamlit_app.py
 ```
 
-`streamlit_app.py` is the public-demo entry point. The deployed runtime reads only versioned files in `demo_data/`; it does not import the research pipeline. The local research application is `webapp/app.py` and has separate private-data requirements.
+`streamlit_app.py` is the public entry point. It imports `webapp.public_app` and can start from the repository's public artifacts alone.
 
-## Interpretation boundary
+## Repository structure
 
-“Margin” means the classification distance `abs(PD − decision threshold)`, not a deposit, collateral requirement, or financial charge. An evidence unit is one predefined optional group of historical information. “Oracle Adaptive” is a non-deployable diagnostic that can look ahead to the Full-Evidence reference; it is an upper-bound comparison, not a recommendation.
+```text
+streamlit_app.py                 # Public Streamlit entry point
+webapp/public_app.py             # Public Explorer interface
+webapp/services/public_simulator.py
+                                 # Read-only frozen trajectory runtime
+demo_data/                       # Versioned public replay artifacts
+webapp/app.py                    # Local research-connected application
+RESEARCH_CODE_FREEZE.md          # Boundary protecting research artifacts
+```
 
-This project is an educational decision-support demonstration, not a production loan-origination, underwriting, or adverse-action system. It must not be used to make real credit decisions.
+`webapp/app.py` is intentionally separate from the public demo. It requires the private/local research environment and is not required for public deployment.
+
+## Research code freeze
+
+Existing research code, splits, fitted-model logic, policy parameters, and published result artifacts are treated as read-only. Product presentation code lives in `webapp/`; the public runtime consumes frozen artifacts rather than rerunning the research pipeline.
+
+See [RESEARCH_CODE_FREEZE.md](RESEARCH_CODE_FREEZE.md) for the boundary.
+
+## Disclaimer
+
+This is an experimental decision-support and portfolio prototype built from public historical data. It is **not** a production underwriting, loan-origination, adverse-action, or real-time credit-decision system.
 

@@ -18,18 +18,34 @@ def run() -> None:
     st.set_page_config(page_title="Credit Evidence Policy Lab", layout="wide")
     rt = runtime()
     st.title("Credit Evidence Policy Lab")
-    st.caption("Public, frozen historical replay. No research experiment runs in this deployment.")
-    explore, compare, failures, assumptions = st.tabs(["Explore replay case", "Compare policies", "Failure explorer", "Assumptions"])
+    st.markdown("### An AI-assisted decision prototype for reducing unnecessary information requests while keeping credit-approval outcomes as consistent as possible.")
+    st.markdown("`AI-assisted development` &nbsp; `Decision experiments` &nbsp; `Interactive prototype`")
+    st.write("This public demo turns a research question into an inspectable workflow: review a historical decision, see what information was used, and examine the trade-off between asking for less and keeping the same outcome.")
+
+    with st.container(border=True):
+        st.subheader("How the project was built")
+        st.write("Started with a complex dynamic gating approach → experiments found it was not consistently better than a simpler policy → simplified the design deliberately → integrated the result into an explainable prototype.")
+        st.caption("The point is not to maximise technical complexity. It is to test an idea honestly, keep the parts that hold up, and make the resulting decision process understandable.")
+        st.divider()
+        st.subheader("My role and how AI contributed")
+        st.write("I was responsible for problem definition, data analysis, experiment design, result interpretation, solution simplification, and prototype integration. I used ChatGPT, Codex, and Gemini to assist with code generation, debugging, and interface iteration.")
+
+    with st.expander("Technical details and research boundary"):
+        st.write("This deployment is a read-only replay of 1,000 frozen Home Credit test cases. It does not train models, tune a policy, score new applicants, or use observed outcomes in a decision. Advanced research terms and diagnostics are kept in the later tabs so the first screen stays focused on the decision workflow.")
+
+    explore, compare, failures, assumptions = st.tabs(["Review a decision", "Compare approaches", "Review disagreement cases", "Assumptions"])
     with explore:
-        pos = st.selectbox("Historical simulation case", range(len(rt.cases)), format_func=rt.case_id)
+        st.subheader("What the system knew, why it stopped, and what happened next")
+        pos = st.selectbox("Historical replay case", range(len(rt.cases)), format_func=rt.case_id)
         row = rt.cases.iloc[pos]
         a, b, c = st.columns(3)
-        a.metric("Fixed-margin PD", f"{row.fixed_probability:.1%}")
-        b.metric("Fixed decision", row.fixed_decision)
-        c.metric("Full-evidence reference PD", f"{row.full_probability:.1%}")
-        st.write(f"**Frozen fixed path:** {row.fixed_path or 'Stopped with initial evidence'}")
-        st.write(f"**Full-evidence agreement:** {'Yes' if not row.fixed_disagreement else 'No'}")
-        st.caption("This public artifact preserves final frozen replay states. It intentionally does not expose source records or permit new inference / counterfactual recomputation.")
+        a.metric("Current estimated default risk", f"{row.fixed_probability:.1%}")
+        b.metric("Final approval recommendation", row.fixed_decision)
+        c.metric("Agreement with the full-information result", "Yes" if not row.fixed_disagreement else "No")
+        st.write(f"**Information acquired:** {row.fixed_path or 'The initial application information was sufficient.'}")
+        st.write("**Why the system stopped:** the frozen policy stopped once the information already collected was sufficient for a stable approval recommendation under its precomputed rule.")
+        st.write(f"**Full-information reference:** estimated default risk {row.full_probability:.1%}. This is a model reference for comparison, not ground truth.")
+        st.caption("The system requests another information group only when the current evidence is not yet sufficient for a stable decision. This public artifact preserves final frozen replay states and does not expose source records or permit new inference / counterfactual recomputation.")
     with compare:
         st.subheader("Precomputed margin sweep: development-set evidence-agreement trade-off")
         sweep = load_sweep()
@@ -97,3 +113,4 @@ def run() -> None:
 - It does not import research scripts, train a model, tune a threshold, or read TARGET.
 - Full Evidence is a model reference, not ground truth.
 - Counterfactual simulation and manual-input scoring remain available only in the local research-connected application because their raw evidence-state artifacts are not published.""")
+

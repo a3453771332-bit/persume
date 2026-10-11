@@ -1,0 +1,9 @@
+# Python-generated files are not portfolio artifacts.
+__pycache__/
+*.py[cod]
+
+# Local environments and secrets.
+.venv/
+.env
+.env.*
+
